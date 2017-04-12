@@ -1,8 +1,8 @@
-import * as fs from 'fs';
+import * as fs from "fs";
 
 export function utimes(path: string, atime: number, mtime: number) {
     return new Promise((resolve, reject) => {
-        fs.utimes(path, atime, mtime, function(err) {
+        fs.utimes(path, atime, mtime, (err) => {
             if (err) {
                 reject(err);
             } else {
@@ -17,14 +17,14 @@ export function copyFile(src: string, dest: string, mode?: number) {
         const readStream = fs.createReadStream(src);
         const writeStream = fs.createWriteStream(dest, { mode });
 
-        readStream.on('error', reject);
-        writeStream.on('error', reject);
+        readStream.on("error", reject);
+        writeStream.on("error", reject);
 
-        writeStream.on('open', function() {
+        writeStream.on("open", () => {
             readStream.pipe(writeStream);
         });
 
-        writeStream.once('finish', function() {
+        writeStream.once("finish", () => {
             resolve();
         });
     });

@@ -4,12 +4,12 @@ export interface Times {
 }
 
 export interface Options {
-    times?: "copy" | "ignore" | Times
-    mode?: "copy" | "ignore" | number
+    times?: "copy" | "ignore" | Times;
+    mode?: "copy" | "ignore" | number;
 }
 
 export const defaultOptions: Options = {
     times: "copy"
-}
+};
 
 export default Options;
