@@ -2,7 +2,7 @@
   "name": "native-copy-file",
   "version": "0.1.0",
   "description": "Access to the operating system file-copy",
-  "main": "index.js",
+  "main": "js/index.js",
   "scripts": {
     "test": "jest"
   },
@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/vbfox/native-copy-file#readme",
   "devDependencies": {
+    "@types/node": "^7.0.12",
     "gulp": "^3.9.1",
     "jest": "^19.0.2",
     "tslint": "^5.1.0",
