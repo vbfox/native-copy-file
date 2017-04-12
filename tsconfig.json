@@ -11,9 +11,10 @@
         "noImplicitThis": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "target": "es2015",
+        "target": "es2017",
         "rootDir": "src",
-        "outDir": "js"
+        "outDir": "js",
+        "declaration": true
     },
     "include": [
         "src/**/*"
