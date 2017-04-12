@@ -12,3 +12,5 @@ export function copyFile(src: string, dest: string, options?: Options) {
         }
     });
 }
+
+export default copyFile;

@@ -1,12 +1,12 @@
 const gulp = require("gulp");
 const ts = require("gulp-typescript");
-const rmdir = require("rmdir");
+const rimraf = require("rimraf");
 const tslint = require("gulp-tslint");
 
 const tsProject = ts.createProject('./tsconfig.json');
 
 gulp.task("clean", done => {
-    rmdir("js", done);
+    rimraf("js", done);
 });
 
 gulp.task("tslint", () => {
@@ -24,5 +24,3 @@ gulp.task("build", () => {
 });
 
 gulp.task("default", ["tslint", "build"], () => {});
-
-gulp.task("ci", ["clean", "default"], () => {});
