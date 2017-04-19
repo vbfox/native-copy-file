@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.props": "xml",
+        "sstream": "cpp",
+        "system_error": "cpp",
+        "xfunctional": "cpp",
+        "xstring": "cpp"
+    }
+}
