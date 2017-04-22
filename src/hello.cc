@@ -1,5 +1,7 @@
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #define UNICODE
 
 #include <windows.h>
@@ -9,6 +11,7 @@ v8::Local<v8::String> wcharToString(wchar_t* str) {
     const uint16_t* data = reinterpret_cast<const uint16_t*>(str);
     return v8::String::NewFromTwoByte(v8::Isolate::GetCurrent(), data, v8::NewStringType::kNormal).ToLocalChecked();
 }
+
 wchar_t* s2w(v8::Local<v8::String> value) {
     wchar_t* buffer = new wchar_t[value->Length() + 1];
     value->Write(reinterpret_cast<uint16_t*>(buffer));
