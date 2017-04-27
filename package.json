@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/vbfox/native-copy-file#readme",
   "devDependencies": {
+    "@types/ffi": "^0.0.19",
     "@types/node": "^7.0.12",
     "gulp": "^3.9.1",
     "gulp-tslint": "^8.0.0",
@@ -31,6 +32,7 @@
     "typescript": "^2.2.2"
   },
   "dependencies": {
-    "nan": "^2.6.2"
+    "ffi": "^2.2.0",
+    "ref-wchar": "^1.0.2"
   }
 }

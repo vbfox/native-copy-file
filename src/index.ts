@@ -1,4 +1,4 @@
-import {copyFile as copyFileManual, utimes} from "./manual";
+import {copyFile as copyFileManual, utimes} from "./methods/manual";
 import Options, { defaultOptions, Times } from "./options";
 
 export function copyFile(src: string, dest: string, options?: Options) {
