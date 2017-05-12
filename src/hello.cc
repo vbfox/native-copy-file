@@ -12,54 +12,109 @@ using v8::Function;
 using v8::Local;
 using v8::Value;
 using v8::String;
+using v8::Number;
 using v8::FunctionTemplate;
 using Nan::AsyncQueueWorker;
 using Nan::AsyncWorker;
 using Nan::Callback;
 using Nan::HandleScope;
+using Nan::New;
+
+#ifdef _WIN32
+Local<String> wcharToString(const wchar_t* str) {
+    if (str == NULL) {
+        return New<String>().ToLocalChecked();
+    }
+
+    const uint16_t* data = reinterpret_cast<const uint16_t*>(str);
+    return String::NewFromTwoByte(
+        v8::Isolate::GetCurrent(),
+        data);
+}
+
+const wchar_t* stringToWchar(Local<String> value) {
+    wchar_t* buffer = new wchar_t[value->Length() + 1];
+    value->Write(reinterpret_cast<uint16_t*>(buffer));
+    return buffer;
+}
+
+const wchar_t* FormatSystemMessageAllocateNoCrLf(DWORD errorCode) {
+    wchar_t* result = NULL;
+    const DWORD charCount = FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        errorCode,
+        0,
+        (LPWSTR)&result,
+        0,
+        NULL);
+    if (charCount >= 2 && result[charCount-2] == '\r' && result[charCount-1] == '\n') {
+        result[charCount-2] = '\0';
+        result[charCount-1] = '\0';
+    }
+
+    return result;
+}
 
 class CopyFileWorker : public AsyncWorker {
     public:
-        CopyFileWorker(Callback *callback, const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName)
+        CopyFileWorker(Callback *callback, const wchar_t* existingFileName, const wchar_t* newFileName)
             : AsyncWorker(callback),
-            lpExistingFileName(lpExistingFileName),
-            lpNewFileName(lpNewFileName),
-            result(FALSE) {
+            existingFileName(existingFileName),
+            newFileName(newFileName),
+            result(FALSE),
+            errorCode(0),
+            errorMessage(NULL) {
         }
 
         ~CopyFileWorker() {
         }
 
         void Execute () {
-            result = CopyFile(lpExistingFileName, lpNewFileName, false);
+            result = CopyFile(existingFileName, newFileName, false);
+            if (!result) {
+                errorCode = GetLastError();
+                errorMessage = FormatSystemMessageAllocateNoCrLf(errorCode);
+            }
+        }
+
+        virtual void HandleOKCallback() {
+            HandleScope scope;
+
+            if (result) {
+                callback->Call(0, NULL);
+            } else {
+                Local<String> errorString = wcharToString(errorMessage);
+                Local<Value> argv[] = {
+                    v8::Exception::Error(errorString),
+                    New<Number>(errorCode)
+                };
+                callback->Call(2, argv);
+            }
         }
 
         void Destroy() {
-            delete[] lpExistingFileName;
-            lpExistingFileName = NULL;
-            delete[] lpNewFileName;
-            lpNewFileName = NULL;
+            delete[] existingFileName;
+            existingFileName = NULL;
+
+            delete[] newFileName;
+            newFileName = NULL;
+
+            if (errorMessage != NULL) {
+                HeapFree (GetProcessHeap(), 0, (void*)errorMessage);
+                errorMessage = NULL;
+            }
 
             AsyncWorker::Destroy();
         }
 
     private:
-        const wchar_t* lpExistingFileName;
-        const wchar_t* lpNewFileName;
+        const wchar_t* existingFileName;
+        const wchar_t* newFileName;
+        const wchar_t* errorMessage;
         BOOL result;
+        DWORD errorCode;
 };
-
-#ifdef _WIN32
-Local<String> wcharToString(wchar_t* str) {
-    const uint16_t* data = reinterpret_cast<const uint16_t*>(str);
-    return String::NewFromTwoByte(v8::Isolate::GetCurrent(), data, v8::NewStringType::kNormal).ToLocalChecked();
-}
-
-wchar_t* stringToWchar(Local<String> value) {
-    wchar_t* buffer = new wchar_t[value->Length() + 1];
-    value->Write(reinterpret_cast<uint16_t*>(buffer));
-    return buffer;
-}
 
 NAN_METHOD(Win32CopyFile) {
     if (info.Length() < 3) {
@@ -85,12 +140,12 @@ NAN_METHOD(Win32CopyFile) {
     const Local<String> sNewFileName = Local<String>::Cast(vNewFileName);
     const Local<String> maxpathOptin = wcharToString(L"\\\\?\\");
 
-    const wchar_t* lpExistingFileName = stringToWchar(String::Concat(maxpathOptin, sExistingFileName));
-    const wchar_t* lpNewFileName = stringToWchar(String::Concat(maxpathOptin, sNewFileName));
+    const wchar_t* existingFileName = stringToWchar(String::Concat(maxpathOptin, sExistingFileName));
+    const wchar_t* newFileName = stringToWchar(String::Concat(maxpathOptin, sNewFileName));
 
 
     Callback* callback = new Callback(vCallback.As<Function>());
-    AsyncQueueWorker(new CopyFileWorker(callback, lpExistingFileName, lpNewFileName));
+    AsyncQueueWorker(new CopyFileWorker(callback, existingFileName, newFileName));
 }
 #endif
 
