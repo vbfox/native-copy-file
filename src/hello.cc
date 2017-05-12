@@ -3,10 +3,12 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #define UNICODE
-
 #include <windows.h>
+#endif
+
 #include <nan.h>
 
+using v8::Function;
 using v8::Local;
 using v8::Value;
 using v8::String;
@@ -16,6 +18,38 @@ using Nan::AsyncWorker;
 using Nan::Callback;
 using Nan::HandleScope;
 
+class CopyFileWorker : public AsyncWorker {
+    public:
+        CopyFileWorker(Callback *callback, const wchar_t* lpExistingFileName, const wchar_t* lpNewFileName)
+            : AsyncWorker(callback),
+            lpExistingFileName(lpExistingFileName),
+            lpNewFileName(lpNewFileName),
+            result(FALSE) {
+        }
+
+        ~CopyFileWorker() {
+        }
+
+        void Execute () {
+            result = CopyFile(lpExistingFileName, lpNewFileName, false);
+        }
+
+        void Destroy() {
+            delete[] lpExistingFileName;
+            lpExistingFileName = NULL;
+            delete[] lpNewFileName;
+            lpNewFileName = NULL;
+
+            AsyncWorker::Destroy();
+        }
+
+    private:
+        const wchar_t* lpExistingFileName;
+        const wchar_t* lpNewFileName;
+        BOOL result;
+};
+
+#ifdef _WIN32
 Local<String> wcharToString(wchar_t* str) {
     const uint16_t* data = reinterpret_cast<const uint16_t*>(str);
     return String::NewFromTwoByte(v8::Isolate::GetCurrent(), data, v8::NewStringType::kNormal).ToLocalChecked();
@@ -28,13 +62,14 @@ wchar_t* stringToWchar(Local<String> value) {
 }
 
 NAN_METHOD(Win32CopyFile) {
-    if (info.Length() < 2) {
+    if (info.Length() < 3) {
         Nan::ThrowTypeError("Wrong number of arguments");
         return;
     }
 
     const Local<Value> vExistingFileName = info[0];
     const Local<Value> vNewFileName = info[1];
+    const Local<Value> vCallback = info[2];
 
     if (!vExistingFileName->IsString()) {
         Nan::ThrowTypeError("existingFileName should be a string");
@@ -53,12 +88,9 @@ NAN_METHOD(Win32CopyFile) {
     const wchar_t* lpExistingFileName = stringToWchar(String::Concat(maxpathOptin, sExistingFileName));
     const wchar_t* lpNewFileName = stringToWchar(String::Concat(maxpathOptin, sNewFileName));
 
-    const BOOL result = CopyFile(lpExistingFileName, lpNewFileName, false);
 
-    delete[] lpExistingFileName;
-    delete[] lpNewFileName;
-
-    info.GetReturnValue().Set(Nan::New(result));
+    Callback* callback = new Callback(vCallback.As<Function>());
+    AsyncQueueWorker(new CopyFileWorker(callback, lpExistingFileName, lpNewFileName));
 }
 #endif
 
