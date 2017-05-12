@@ -7,25 +7,34 @@
 #include <windows.h>
 #include <nan.h>
 
-v8::Local<v8::String> wcharToString(wchar_t* str) {
+using v8::Local;
+using v8::Value;
+using v8::String;
+using v8::FunctionTemplate;
+using Nan::AsyncQueueWorker;
+using Nan::AsyncWorker;
+using Nan::Callback;
+using Nan::HandleScope;
+
+Local<String> wcharToString(wchar_t* str) {
     const uint16_t* data = reinterpret_cast<const uint16_t*>(str);
-    return v8::String::NewFromTwoByte(v8::Isolate::GetCurrent(), data, v8::NewStringType::kNormal).ToLocalChecked();
+    return String::NewFromTwoByte(v8::Isolate::GetCurrent(), data, v8::NewStringType::kNormal).ToLocalChecked();
 }
 
-wchar_t* s2w(v8::Local<v8::String> value) {
+wchar_t* stringToWchar(Local<String> value) {
     wchar_t* buffer = new wchar_t[value->Length() + 1];
     value->Write(reinterpret_cast<uint16_t*>(buffer));
     return buffer;
 }
 
-void Win32CopyFile(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(Win32CopyFile) {
     if (info.Length() < 2) {
         Nan::ThrowTypeError("Wrong number of arguments");
         return;
     }
 
-    const v8::Local<v8::Value> vExistingFileName = info[0];
-    const v8::Local<v8::Value> vNewFileName = info[1];
+    const Local<Value> vExistingFileName = info[0];
+    const Local<Value> vNewFileName = info[1];
 
     if (!vExistingFileName->IsString()) {
         Nan::ThrowTypeError("existingFileName should be a string");
@@ -37,12 +46,12 @@ void Win32CopyFile(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         return;
     }
 
-    const v8::Local<v8::String> sExistingFileName = v8::Local<v8::String>::Cast(vExistingFileName);
-    const v8::Local<v8::String> sNewFileName = v8::Local<v8::String>::Cast(vNewFileName);
-    const v8::Local<v8::String> maxpathOptin = wcharToString(L"\\\\?\\");
+    const Local<String> sExistingFileName = Local<String>::Cast(vExistingFileName);
+    const Local<String> sNewFileName = Local<String>::Cast(vNewFileName);
+    const Local<String> maxpathOptin = wcharToString(L"\\\\?\\");
 
-    const wchar_t* lpExistingFileName = s2w(v8::String::Concat(maxpathOptin, sExistingFileName));
-    const wchar_t* lpNewFileName = s2w(v8::String::Concat(maxpathOptin, sNewFileName));
+    const wchar_t* lpExistingFileName = stringToWchar(String::Concat(maxpathOptin, sExistingFileName));
+    const wchar_t* lpNewFileName = stringToWchar(String::Concat(maxpathOptin, sNewFileName));
 
     const BOOL result = CopyFile(lpExistingFileName, lpNewFileName, false);
 
@@ -53,10 +62,13 @@ void Win32CopyFile(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 }
 #endif
 
-void Init(v8::Local<v8::Object> exports) {
+
+NAN_MODULE_INIT(Init) {
 #ifdef _WIN32
-  exports->Set(Nan::New("win32CopyFile").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(Win32CopyFile)->GetFunction());
+    Nan::Set(
+        target,
+        Nan::New("win32CopyFile").ToLocalChecked(),
+        Nan::New<FunctionTemplate>(Win32CopyFile)->GetFunction());
 #endif
 }
 
