@@ -5,7 +5,9 @@
   "main": "js/index.js",
   "gypfile": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "configure": "node-gyp configure",
+    "build": "node-gyp build"
   },
   "repository": {
     "type": "git",
